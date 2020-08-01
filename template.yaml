@@ -40,17 +40,38 @@ Resources:
     DependsOn:
       - WebsocketRoutetest
       - WebsocketRoutetestResponse
+      - WebsocketRoutetestIntegrationResponse
   WebsocketRoutetest:
     Type: AWS::ApiGatewayV2::Route
     Properties:
       ApiId: !Ref Websocket
       RouteKey: test
+      Target: !Sub integrations/${WebsocketRoutetestIntegration}
   WebsocketRoutetestResponse:
     Type: AWS::ApiGatewayV2::RouteResponse
     Properties:
       ApiId: !Ref Websocket
       RouteId: !Ref WebsocketRoutetest
       RouteResponseKey: $default
+  WebsocketRoutetestIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref Websocket
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Function.Arn}/invocations
+  WebsocketRoutetestIntegrationPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt Function.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${Websocket}/*/test
+  WebsocketRoutetestIntegrationResponse:
+    Type: AWS::ApiGatewayV2::IntegrationResponse
+    Properties:
+      ApiId: !Ref Websocket
+      IntegrationId: !Ref WebsocketRoutetestIntegration
+      IntegrationResponseKey: $default
 Parameters:
   StackTagName:
     Type: String
